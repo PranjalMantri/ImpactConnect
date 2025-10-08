@@ -1,6 +1,7 @@
 import { Bell, Menu, Search, X } from "lucide-react";
 import { useState } from "react";
 import useUserStore from "../../store/userStore";
+import { useNavigate } from "react-router-dom";
 
 const LoggedInHeader = () => {
   return (
@@ -59,6 +60,7 @@ const LoggedInHeader = () => {
 
 const LoggedOutHeader = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <>
@@ -88,7 +90,10 @@ const LoggedOutHeader = () => {
           <button className="rounded-lg h-10 px-4 text-sm font-bold bg-[#1193d4]/20 text-[#1193d4] hover:bg-[#1193d4]/30">
             Log In
           </button>
-          <button className="rounded-lg h-10 px-4 text-sm font-bold bg-[#1193d4] text-white hover:opacity-90">
+          <button
+            onClick={() => navigate("/register")}
+            className="rounded-lg h-10 px-4 text-sm font-bold bg-[#1193d4] text-white hover:opacity-90"
+          >
             Sign Up
           </button>
         </div>
