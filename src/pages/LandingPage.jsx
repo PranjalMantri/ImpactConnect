@@ -38,7 +38,7 @@ const Index = () => {
               <Link to="/projects">Explore Projects</Link>
             </Button>
             <Button size="lg" variant="secondary" asChild>
-              <Link to="/signup">Sign Up</Link>
+              <Link to="/register">Sign Up</Link>
             </Button>
           </div>
         </div>
@@ -93,7 +93,7 @@ const Index = () => {
         </div>
       </section>
 
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 };
