@@ -1,63 +1,70 @@
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
+import { Label } from "../components/ui/Label";
+import { Heart } from "lucide-react";
 
-const LoginPage = () => {
-  const navigate = useNavigate();
-
+const Login = () => {
   return (
-    <div className="min-h-screen bg-[#f6f7f8] flex items-center justify-center">
-      <div className="flex items-center justify-center min-h-screen bg-[#f6f7f8]">
-        <div className="w-full max-w-md p-8 space-y-6 rounded-lg shadow-md">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
-            <p className="mt-2 text-sm text-gray-600">
-              Log in to connect and make a difference.
-            </p>
-          </div>
-          <form className="mt-4 flex flex-col gap-2">
-            <div className="space-y-4">
-              <input
-                id="email-username"
-                name="email-username"
-                type="text"
-                required
-                className="w-full px-4 py-3 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-t-md focus:outline-none focus:ring-[#1193d4] focus:border-[#1193d4] focus:z-10 sm:text-sm"
-                placeholder="Email or username"
-              />
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="w-full px-4 py-3 text-gray-900 placeholder-gray-500 border border-t-0 border-gray-300 rounded-b-md focus:outline-none focus:ring-[#1193d4] focus:border-[#1193d4] focus:z-10 sm:text-sm"
-                placeholder="Password"
+    <div className="min-h-screen flex items-center justify-center bg-muted px-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-flex items-center gap-2 mb-6">
+            <div className="w-12 h-12 rounded-lg bg-primary flex items-center justify-center">
+              <Heart
+                className="w-7 h-7 text-primary-foreground"
+                fill="currentColor"
               />
             </div>
+            <span className="text-2xl font-bold">ImpactConnect</span>
+          </Link>
+          <h1 className="text-3xl font-bold mb-2">Welcome back</h1>
+          <p className="text-muted-foreground">
+            Sign in to your account to continue
+          </p>
+        </div>
 
-            <div className="flex items-center justify-between mt-4">
-              <button
-                type="submit"
-                onClick={() => navigate("/home")}
-                className="w-full px-4 py-3 font-medium text-white bg-[#1193d4] rounded-md hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1193d4] transition duration-150 ease-in-out"
-              >
-                Log in
-              </button>
+        <div className="bg-card border border-border rounded-lg p-8">
+          <form className="space-y-4">
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" placeholder="your@email.com" />
             </div>
 
-            <p className="mt-2 text-sm text-center text-gray-600">
-              Don't have an account?{" "}
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" placeholder="••••••••" />
+            </div>
+
+            <div className="flex items-center justify-between text-sm">
               <Link
-                to="/register"
-                className="font-medium text-[#1193d4] hover:underline"
+                to="/forgot-password"
+                className="text-primary hover:underline"
               >
-                Sign up
+                Forgot password?
               </Link>
-            </p>
+            </div>
+
+            <Button className="w-full" size="lg">
+              Sign In
+            </Button>
           </form>
+
+          <div className="mt-6 text-center text-sm">
+            <span className="text-muted-foreground">
+              Don't have an account?{" "}
+            </span>
+            <Link
+              to="/signup"
+              className="text-primary font-medium hover:underline"
+            >
+              Sign up
+            </Link>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-export default LoginPage;
+export default Login;
