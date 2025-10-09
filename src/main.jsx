@@ -6,6 +6,8 @@ import RegisterPage from "./pages/RegisterPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import { Route, Routes, BrowserRouter } from "react-router";
 import ProjectsPage from "./pages/ProjectsPage.jsx";
+import DonatePage from "./pages/DonatePage.jsx";
+import ProjectDetailPage from "./pages/ProjectDetailPage.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -15,6 +17,8 @@ createRoot(document.getElementById("root")).render(
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/project/:id" element={<ProjectDetailPage />} />
+        <Route path="/donate" element={<DonatePage />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>
