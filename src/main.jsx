@@ -9,6 +9,7 @@ import ProjectsPage from "./pages/ProjectsPage.jsx";
 import DonatePage from "./pages/DonatePage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import ProjectDetailPage from "./pages/ProjectDetailPage.jsx";
+import DonorDashboard from "./pages/DonorDashboard.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -21,6 +22,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/project/:id" element={<ProjectDetailPage />} />
         <Route path="/donate" element={<DonatePage />} />
+        <Route path="/donor-dashboard" element={<DonorDashboard />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>
