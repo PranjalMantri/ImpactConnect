@@ -15,6 +15,7 @@ import NGODashboard from "./pages/NGODashboard.jsx";
 import CreateProject from "./pages/CreateProject.jsx";
 import NGOOnboarding from "./pages/NGOOnboarding.jsx";
 import VolunteerDashboard from "./pages/VolunteerDashboard.jsx";
+import NotFound from "./pages/NotFound.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -33,6 +34,8 @@ createRoot(document.getElementById("root")).render(
         <Route path="/ngo-dashboard" element={<NGODashboard />} />
         <Route path="/ngo/create-project" element={<CreateProject />} />
         <Route path="/messages" element={<Messages />} />
+
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>
