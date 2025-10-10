@@ -7,6 +7,7 @@ import LoginPage from "./pages/LoginPage.jsx";
 import { Route, Routes, BrowserRouter } from "react-router";
 import ProjectsPage from "./pages/ProjectsPage.jsx";
 import DonatePage from "./pages/DonatePage.jsx";
+import HomePage from "./pages/HomePage.jsx";
 import ProjectDetailPage from "./pages/ProjectDetailPage.jsx";
 
 createRoot(document.getElementById("root")).render(
@@ -16,6 +17,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/" element={<App />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/home" element={<HomePage />} />
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/project/:id" element={<ProjectDetailPage />} />
         <Route path="/donate" element={<DonatePage />} />
