@@ -13,18 +13,30 @@ import CreateProject from "./pages/CreateProject.jsx";
 import NGOOnboarding from "./pages/NGOOnboarding.jsx";
 import VolunteerDashboard from "./pages/VolunteerDashboard.jsx";
 import NotFound from "./pages/NotFound.jsx";
-import useUserStore from "./store/userStore.js";
+import { useState, useEffect } from "react";
+import supabase from "./supabase/client.js";
 
 function App() {
-  const isUserLoggedIn = useUserStore((state) => state.isUserLoggedIn);
+  const [session, setSession] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/"
-          element={isUserLoggedIn ? <HomePage /> : <LandingPage />}
-        />
+        <Route path="/" element={session ? <HomePage /> : <LandingPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/projects" element={<ProjectsPage />} />

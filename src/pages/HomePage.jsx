@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardFooter,
 } from "../components/ui/Card";
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/Avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/Tabs";
 import {
   Heart,
@@ -17,7 +17,7 @@ import {
   Handshake,
   DollarSign,
   Lightbulb,
-} from "lucide-react"; // Added relevant icons
+} from "lucide-react";
 
 // --- Dummy Data ---
 

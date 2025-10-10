@@ -6,6 +6,7 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Label } from "../components/ui/Label";
 import { Heart } from "lucide-react";
+import supabase from "../supabase/client";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -28,15 +29,20 @@ const Login = () => {
     },
   });
 
+  // 2. Implement Supabase login logic in the onSubmit function
   const onSubmit = async (data) => {
-    console.log("Login data:", data);
-
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const { error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) throw error;
 
       navigate("/");
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error("Login failed:", error.message);
+      alert(`Login Failed: ${error.message}`);
     }
   };
 
@@ -60,11 +66,9 @@ const Login = () => {
         </div>
 
         <div className="bg-card border border-border rounded-lg p-8">
-          {/* 3. Attach handleSubmit and onSubmit to the form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <Label htmlFor="email">Email</Label>
-              {/* 4. Register the input and display validation error */}
               <Input
                 id="email"
                 type="email"
@@ -80,7 +84,6 @@ const Login = () => {
 
             <div>
               <Label htmlFor="password">Password</Label>
-              {/* 4. Register the input and display validation error */}
               <Input
                 id="password"
                 type="password"
@@ -94,7 +97,6 @@ const Login = () => {
               )}
             </div>
 
-            {/* 5. Disable the button during submission */}
             <Button
               className="w-full"
               size="lg"
