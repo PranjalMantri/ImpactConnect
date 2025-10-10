@@ -34,7 +34,7 @@ const Login = () => {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      navigate("/projects");
+      navigate("/");
     } catch (error) {
       console.error("Login failed:", error);
     }

@@ -65,7 +65,7 @@ const RegisterPage = () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // On successful registration, navigate to the home page or a success page
-      navigate("/projects");
+      navigate("/");
     } catch (error) {
       // Handle registration error (e.g., display a global error message)
       console.error("Registration failed:", error);

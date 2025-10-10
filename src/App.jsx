@@ -1,10 +1,45 @@
 import LandingPage from "./pages/LandingPage";
+import RegisterPage from "./pages/RegisterPage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import { Route, Routes, BrowserRouter } from "react-router";
+import ProjectsPage from "./pages/ProjectsPage.jsx";
+import DonatePage from "./pages/DonatePage.jsx";
+import HomePage from "./pages/HomePage.jsx";
+import ProjectDetailPage from "./pages/ProjectDetailPage.jsx";
+import DonorDashboard from "./pages/DonorDashboard.jsx";
+import Messages from "./pages/Messages.jsx";
+import NGODashboard from "./pages/NGODashboard.jsx";
+import CreateProject from "./pages/CreateProject.jsx";
+import NGOOnboarding from "./pages/NGOOnboarding.jsx";
+import VolunteerDashboard from "./pages/VolunteerDashboard.jsx";
+import NotFound from "./pages/NotFound.jsx";
+import useUserStore from "./store/userStore.js";
 
 function App() {
+  const isUserLoggedIn = useUserStore((state) => state.isUserLoggedIn);
+
   return (
-    <div>
-      <LandingPage />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route
+          path="/"
+          element={isUserLoggedIn ? <HomePage /> : <LandingPage />}
+        />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/project/:id" element={<ProjectDetailPage />} />
+        <Route path="/donate" element={<DonatePage />} />
+        <Route path="/donor-dashboard" element={<DonorDashboard />} />
+        <Route path="/volunteer-dashboard" element={<VolunteerDashboard />} />
+        <Route path="/ngo-onboarding" element={<NGOOnboarding />} />
+        <Route path="/ngo-dashboard" element={<NGODashboard />} />
+        <Route path="/ngo/create-project" element={<CreateProject />} />
+        <Route path="/messages" element={<Messages />} />
+
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
