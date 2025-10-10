@@ -14,6 +14,7 @@ import Messages from "./pages/Messages.jsx";
 import NGODashboard from "./pages/NGODashboard.jsx";
 import CreateProject from "./pages/CreateProject.jsx";
 import NGOOnboarding from "./pages/NGOOnboarding.jsx";
+import VolunteerDashboard from "./pages/VolunteerDashboard.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -27,10 +28,11 @@ createRoot(document.getElementById("root")).render(
         <Route path="/project/:id" element={<ProjectDetailPage />} />
         <Route path="/donate" element={<DonatePage />} />
         <Route path="/donor-dashboard" element={<DonorDashboard />} />
-        <Route path="/messages" element={<Messages />} />
+        <Route path="/volunteer-dashboard" element={<VolunteerDashboard />} />
         <Route path="/ngo-onboarding" element={<NGOOnboarding />} />
         <Route path="/ngo-dashboard" element={<NGODashboard />} />
         <Route path="/ngo/create-project" element={<CreateProject />} />
+        <Route path="/messages" element={<Messages />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>
