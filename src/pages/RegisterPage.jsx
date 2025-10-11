@@ -67,6 +67,13 @@ const RegisterPage = () => {
       const { error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
+        options: {
+          data: {
+            user_type: data.role.toLowerCase(),
+            full_name: data.firstName + " " + data.lastName,
+            email: data.email,
+          },
+        },
       });
 
       if (error) {
