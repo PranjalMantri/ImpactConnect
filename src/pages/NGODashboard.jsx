@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import supabase from "../supabase/client";
 import Navbar from "../components/Navbar";
 import {
   Card,
@@ -16,112 +18,94 @@ import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
 import { DollarSign, Users, FolderOpen, TrendingUp } from "lucide-react";
 
-// --- Dummy Data for Frontend Development ---
-
-const DUMMY_NGO = {
-  id: "ngo-456",
-  organization_name: "Hope for the Future Foundation",
-  verification_status: "verified",
-};
-
-const DUMMY_PROJECTS = [
-  {
-    id: "proj-001",
-    title: "School Supplies Drive 2025",
-    category: "Education",
-    status: "active",
-    current_funding: 5200.0,
-    funding_goal: 7500.0,
-    created_at: "2025-08-10T00:00:00Z",
-  },
-  {
-    id: "proj-002",
-    title: "Community Garden Expansion",
-    category: "Environment",
-    status: "completed",
-    current_funding: 1500.0,
-    funding_goal: 1500.0,
-    created_at: "2024-12-01T00:00:00Z",
-  },
-  {
-    id: "proj-003",
-    title: "Winter Coat Collection",
-    category: "Social Welfare",
-    status: "inactive",
-    current_funding: 0.0,
-    funding_goal: 3000.0,
-    created_at: "2025-01-20T00:00:00Z",
-  },
-];
-
-const DUMMY_DONATIONS = [
-  {
-    id: "d-001",
-    amount: 250.0,
-    donated_at: "2025-10-09T12:00:00Z",
-    frequency: "one_time",
-    message: "For the School Supplies Drive.",
-  },
-  {
-    id: "d-002",
-    amount: 50.0,
-    donated_at: "2025-10-01T08:00:00Z",
-    frequency: "monthly",
-    message: null,
-  },
-  {
-    id: "d-003",
-    amount: 1000.0,
-    donated_at: "2025-09-25T15:00:00Z",
-    frequency: "one_time",
-    message: "Anonymous major gift.",
-  },
-];
-
-const DUMMY_VOLUNTEER_APPLICATIONS = [
-  {
-    id: "app-001",
-    volunteer_id: "vol-1",
-    project_id: "proj-001",
-    status: "pending",
-    applied_at: "2025-10-08T09:00:00Z",
-    message: "I'm a teacher and would love to help organize!",
-    profile: { full_name: "Maya Singh", email: "maya@example.com" },
-    project: { title: "School Supplies Drive 2025" },
-  },
-  {
-    id: "app-002",
-    volunteer_id: "vol-2",
-    project_id: "proj-002",
-    status: "accepted",
-    applied_at: "2025-07-20T14:30:00Z",
-    message: null,
-    profile: { full_name: "David Lee", email: "david@example.com" },
-    project: { title: "Community Garden Expansion" },
-  },
-  {
-    id: "app-003",
-    volunteer_id: "vol-3",
-    project_id: "proj-001",
-    status: "rejected",
-    applied_at: "2025-10-05T11:00:00Z",
-    message: null,
-    profile: { full_name: "Chris Evans", email: "chris@example.com" },
-    project: { title: "School Supplies Drive 2025" },
-  },
-];
-
-// --- Component ---
-
 const NGODashboard = () => {
   const navigate = useNavigate();
 
-  const ngo = DUMMY_NGO;
-  const projects = DUMMY_PROJECTS;
-  const donations = DUMMY_DONATIONS;
-  const volunteerApplications = DUMMY_VOLUNTEER_APPLICATIONS;
+  const [loading, setLoading] = useState(true);
+  const [ngo, setNgo] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [donations, setDonations] = useState([]);
+  const [volunteerApplications, setVolunteerApplications] = useState([]);
 
-  // NGO registration check simulation
+  // useEffect is used here to run your logic after the component initially renders.
+  useEffect(() => {
+    const checkUserAndFetchData = async () => {
+      // 1. Get user data from the session, as you suggested.
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        setLoading(false);
+        // Maybe navigate to login if no session is found
+        navigate("/login");
+        return;
+      }
+      const user = session.user;
+
+      try {
+        // 2. Check if there is any NGO with the user's ID.
+        const { data: ngoData, error: ngoError } = await supabase
+          .from("ngos")
+          .select(`*`)
+          .eq("id", user.id)
+          .single();
+
+        // 3. If no NGO exists, we stop and will show the onboarding card.
+        if (ngoError || !ngoData) {
+          setNgo(null);
+          setLoading(false);
+          return;
+        }
+
+        // 4. If an NGO exists, store it and fetch its related data.
+        setNgo(ngoData);
+
+        const { data: projectsData } = await supabase
+          .from("projects")
+          .select("*")
+          .eq("ngo_id", ngoData.id);
+
+        setProjects(projectsData || []);
+        const projectIds = projectsData?.map((p) => p.id) || [];
+
+        if (projectIds.length > 0) {
+          const { data: donationsData } = await supabase
+            .from("donations")
+            .select("*")
+            .in("project_id", projectIds);
+          setDonations(donationsData || []);
+
+          const { data: appsData } = await supabase
+            .from("volunteer_applications")
+            .select("*, profile:profiles(*), project:projects(title)")
+            .in("project_id", projectIds);
+          setVolunteerApplications(appsData || []);
+        }
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+        setNgo(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUserAndFetchData();
+  }, [supabase, navigate]);
+
+  // --- The rest of the component remains the same ---
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <p>Loading your dashboard...</p>
+        </main>
+      </div>
+    );
+  }
+
   if (!ngo) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -154,6 +138,7 @@ const NGODashboard = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="mt-10 flex-1 container mx-auto px-4 py-8">
+        {/* ... The rest of the JSX is identical to the previous version ... */}
         <div className="mb-8">
           <div className="flex justify-between items-start mb-4">
             <div>
@@ -178,7 +163,6 @@ const NGODashboard = () => {
           </div>
         </div>
 
-        {/* --- Key Metrics Cards --- */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -247,7 +231,6 @@ const NGODashboard = () => {
           </Card>
         </div>
 
-        {/* --- Tabs for Details --- */}
         <Tabs defaultValue="projects" className="space-y-6">
           <TabsList>
             <TabsTrigger value="projects">Projects</TabsTrigger>
@@ -256,7 +239,6 @@ const NGODashboard = () => {
             <TabsTrigger value="reports">Impact Reports</TabsTrigger>
           </TabsList>
 
-          {/* Projects Tab */}
           <TabsContent value="projects" className="space-y-4">
             {projects?.length > 0 ? (
               projects.map((project) => (
@@ -308,7 +290,6 @@ const NGODashboard = () => {
             )}
           </TabsContent>
 
-          {/* Donations Tab */}
           <TabsContent value="donations" className="space-y-4">
             {donations?.length > 0 ? (
               donations.map((donation) => (
@@ -350,7 +331,6 @@ const NGODashboard = () => {
             )}
           </TabsContent>
 
-          {/* Volunteer Applications Tab */}
           <TabsContent value="volunteers" className="space-y-4">
             {volunteerApplications?.length > 0 ? (
               volunteerApplications.map((app) => (
@@ -414,7 +394,6 @@ const NGODashboard = () => {
             )}
           </TabsContent>
 
-          {/* Impact Reports Tab */}
           <TabsContent value="reports">
             <Card>
               <CardContent className="pt-6">
