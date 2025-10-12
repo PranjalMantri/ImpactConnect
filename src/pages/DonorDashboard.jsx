@@ -1,125 +1,139 @@
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { DollarSign, Calendar } from "lucide-react";
+import supabase from "../supabase/client";
+import { Button } from "../components/ui/Button";
 import Navbar from "../components/Navbar";
 import {
   Card,
-  CardContent,
   CardHeader,
   CardTitle,
+  CardContent,
 } from "../components/ui/Card";
 import {
   Tabs,
-  TabsContent,
   TabsList,
   TabsTrigger,
+  TabsContent,
 } from "../components/ui/Tabs";
-import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
-import { DollarSign, Calendar, TrendingUp, Award } from "lucide-react";
 
-const DUMMY_PROFILE = {
-  full_name: "Leslie Knope",
-  user_type: "donor",
-  // ... other profile fields
-};
-
-const DUMMY_DONATIONS = [
-  {
-    id: "d-001",
-    amount: 100.0,
-    donated_at: "2025-10-05T10:30:00Z",
-    frequency: "one_time",
-    message: "Keep up the great work helping the local parks!",
-    ngo_organizations: { organization_name: "Pawnee Parks Dept" },
-    projects: { title: "New Swingset Fund" },
-  },
-  {
-    id: "d-002",
-    amount: 50.0,
-    donated_at: "2025-09-20T14:00:00Z",
-    frequency: "one_time",
-    message: null,
-    ngo_organizations: { organization_name: "Second Chance Animal Rescue" },
-    projects: null,
-  },
-  {
-    id: "d-003",
-    amount: 25.0,
-    donated_at: "2025-09-01T08:15:00Z",
-    frequency: "monthly",
-    message: "Monthly support for clean water projects.",
-    ngo_organizations: { organization_name: "Global Water Initiative" },
-    projects: { title: "Kenya Well Project" },
-  },
-];
-
-const DUMMY_RECURRING_DONATIONS = [
-  {
-    id: "r-001",
-    amount: 25.0,
-    frequency: "Monthly",
-    next_donation_date: "2025-11-01T00:00:00Z",
-    active: true,
-    ngo_organizations: { organization_name: "Global Water Initiative" },
-    projects: { title: "Kenya Well Project" },
-  },
-  {
-    id: "r-002",
-    amount: 10.0,
-    frequency: "Weekly",
-    next_donation_date: "2025-10-17T00:00:00Z",
-    active: true,
-    ngo_organizations: { organization_name: "Local Food Bank" },
-    projects: null,
-  },
-];
-
-const DUMMY_USER_POINTS = { total_points: 1245 };
-
-const DUMMY_USER_BADGES = [
-  {
-    id: "b-001",
-    earned_at: "2025-09-01T08:15:00Z",
-    badges: {
-      name: "First Responder",
-      description: "Made your first donation.",
-      icon_url: null,
-    },
-  },
-  {
-    id: "b-002",
-    earned_at: "2025-10-05T10:30:00Z",
-    badges: {
-      name: "Century Club",
-      description: "Donated over $100 total.",
-      icon_url: null,
-    },
-  },
-];
-
-// --- Component ---
+import { useNavigate } from "react-router-dom";
 
 const DonorDashboard = () => {
   const navigate = useNavigate();
 
-  // Replace useQuery hooks with dummy data
-  const profile = DUMMY_PROFILE;
-  const donations = DUMMY_DONATIONS;
-  const recurringDonations = DUMMY_RECURRING_DONATIONS;
-  const userPoints = DUMMY_USER_POINTS;
-  const userBadges = DUMMY_USER_BADGES;
+  // State for holding data, loading, and error status
+  const [profile, setProfile] = useState(null);
+  const [donations, setDonations] = useState([]);
+  const [recurringDonations, setRecurringDonations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Calculate total donated amount from dummy data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      setLoading(true);
+      setError(null);
+
+      // 1. Get the current user from Supabase auth
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      console.log(user.id);
+
+      // 2. Fetch the user's profile from the 'profiles' table
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, full_name, user_type") // Specify columns you need
+        .eq("id", user.id)
+        .single(); // Use .single() as each user has one profile
+
+      if (profileError) {
+        setError("Failed to fetch user profile.");
+        console.error("Profile fetch error:", profileError.message);
+        setLoading(false);
+        return;
+      }
+      setProfile(profileData);
+
+      // 3. Fetch the user's donations from the 'donations' table
+      const { data: donationsData, error: donationsError } = await supabase
+        .from("donations")
+        .select(
+          `
+            id,
+            created_at,
+            amount,
+            frequency,
+            message,
+            projects (
+                title,
+                ngos (
+                    organization_name
+                )
+            )
+        `
+        )
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (donationsError) {
+        setError("Failed to fetch donation history.");
+        console.error("Donations fetch error:", donationsError.message);
+      } else {
+        // Map the data from Supabase to match the component's expected structure
+        const formattedDonations = donationsData.map((d) => ({
+          id: d.id,
+          amount: d.amount,
+          donated_at: d.created_at,
+          frequency: d.frequency,
+          message: d.message,
+          ngo_organizations: d.projects?.ngos,
+          projects: d.projects,
+        }));
+
+        const recuringDonations = formattedDonations.filter(
+          (donation) => donation.frequency !== "one-time"
+        );
+        setRecurringDonations(recuringDonations);
+        setDonations(formattedDonations);
+      }
+
+      setLoading(false);
+    };
+
+    fetchUserData();
+  }, [navigate]);
+
+  // Calculate total donated amount from the fetched data
   const totalDonated =
     donations?.reduce((sum, d) => sum + Number(d.amount), 0) || 0;
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-xl">Loading your dashboard...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-xl text-red-500">{error}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
       <main className="mt-8 flex-1 container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Donor Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome back, {profile?.full_name}!
+            Welcome back, {profile?.full_name || "Donor"}!
           </p>
         </div>
 
@@ -133,14 +147,13 @@ const DonorDashboard = () => {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                ${totalDonated.toFixed(2)}
-              </div>
+              <div className="text-2xl font-bold">₹{totalDonated}</div>
               <p className="text-xs text-muted-foreground">
                 {donations?.length} donations
               </p>
             </CardContent>
           </Card>
+          {/* Add other metric cards here (e.g., points, badges) */}
         </div>
 
         {/* Tabs for Details */}
@@ -158,8 +171,9 @@ const DonorDashboard = () => {
                   <CardContent className="pt-6">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold">
-                          {donation.ngo_organizations?.organization_name}
+                        <h3 className="font-semibold text-lg">
+                          {donation.ngo_organizations?.organization_name ||
+                            "Organization"}
                         </h3>
                         {donation.projects?.title && (
                           <p className="text-sm text-muted-foreground">
@@ -173,22 +187,14 @@ const DonorDashboard = () => {
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold">
-                          ${Number(donation.amount).toFixed(2)}
+                          ₹{Number(donation.amount).toFixed(2)}
                         </p>
-                        <Badge
-                          variant={
-                            donation.frequency === "one_time"
-                              ? "secondary"
-                              : "default"
-                          }
-                        >
-                          {donation.frequency.replace("_", "-")}
-                        </Badge>
+                        <Badge>{donation.frequency.replace("_", "-")}</Badge>
                       </div>
                     </div>
                     {donation.message && (
                       <p className="text-sm mt-4 p-3 bg-muted rounded">
-                        {donation.message}
+                        "{donation.message}"
                       </p>
                     )}
                   </CardContent>
