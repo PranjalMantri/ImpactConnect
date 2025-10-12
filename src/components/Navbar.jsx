@@ -43,32 +43,55 @@ const Navbar = () => {
           <span className="text-foreground">ImpactConnect</span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-6">
-          <Link
-            to="/about"
-            className={`text-sm font-medium transition-colors hover:text-primary ${
-              isActive("/about") ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
-            About
-          </Link>
-          <Link
-            to="/projects"
-            className={`text-sm font-medium transition-colors hover:text-primary ${
-              isActive("/projects") ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
-            Projects
-          </Link>
-          <Link
-            to="/ngos"
-            className={`text-sm font-medium transition-colors hover:text-primary ${
-              isActive("/ngos") ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
-            NGOs
-          </Link>
-        </div>
+        {session ? (
+          <div className="hidden md:flex items-center gap-6">
+            <Link
+              to="/projects"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                isActive("/projects") ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              Projects
+            </Link>
+            <Link
+              to="/dashboard"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                isActive("/dashboard")
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              }`}
+            >
+              Dashboard
+            </Link>
+          </div>
+        ) : (
+          <div className="hidden md:flex items-center gap-6">
+            <Link
+              to="/about"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                isActive("/about") ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              About
+            </Link>
+            <Link
+              to="/projects"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                isActive("/projects") ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              Projects
+            </Link>
+            <Link
+              to="/ngos"
+              className={`text-sm font-medium transition-colors hover:text-primary ${
+                isActive("/ngos") ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              NGOs
+            </Link>
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           {session ? (
