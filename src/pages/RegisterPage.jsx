@@ -63,24 +63,40 @@ const RegisterPage = () => {
   const onSubmit = async (data) => {
     console.log("Registration data:", data);
     setAuthError(null);
-    try {
-      const { error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            user_type: data.role.toLowerCase(),
-            full_name: data.firstName + " " + data.lastName,
-            email: data.email,
-          },
-        },
-      });
 
-      if (error) {
-        throw error;
+    try {
+      const { data: authData, error: signUpError } = await supabase.auth.signUp(
+        {
+          email: data.email,
+          password: data.password,
+          options: {
+            data: {
+              user_type: data.role.toLowerCase(),
+              full_name: `${data.firstName} ${data.lastName}`,
+              email: data.email,
+            },
+          },
+        }
+      );
+
+      if (signUpError) {
+        throw signUpError;
       }
 
-      // On success, show the confirmation message
+      // Check if the user role is 'volunteer'
+      if (authData.user && data.role.toLowerCase() === "volunteer") {
+        const { error: volunteerError } = await supabase
+          .from("volunteers")
+          .insert({
+            profile_id: authData.user.id,
+            total_points: 0,
+          });
+
+        if (volunteerError) {
+          throw volunteerError;
+        }
+      }
+
       setIsSubmitted(true);
     } catch (error) {
       console.error("Registration failed:", error);

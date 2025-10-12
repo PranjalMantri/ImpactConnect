@@ -1,147 +1,137 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import supabase from "../supabase/client";
+
 import Navbar from "../components/Navbar";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/Card";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "../components/ui/Tabs";
+
+import DashboardSummary from "../components/DashboardSummary";
+import SkillsManager from "../components/SkillsManager";
+import AvailabilityManager from "../components/AvailabilityManager";
+import ApplicationsList from "../components/ApplicationsList";
+import { Card, CardContent } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
-import { Input } from "../components/ui/Input";
-import { Badge } from "../components/ui/Badge";
-import { Briefcase, Calendar, Award, Plus, X } from "lucide-react";
-
-// --- Dummy Data for Frontend Development ---
-
-const DUMMY_PROFILE = { full_name: "Maya Chen", user_type: "volunteer" };
-
-const DUMMY_SKILLS = [
-  {
-    id: "s-001",
-    skill_name: "Graphic Design",
-    proficiency_level: "Intermediate",
-  },
-  { id: "s-002", skill_name: "Social Media", proficiency_level: "Expert" },
-  { id: "s-003", skill_name: "Teaching", proficiency_level: "Beginner" },
-];
-
-const DUMMY_APPLICATIONS = [
-  {
-    id: "app-001",
-    status: "accepted",
-    applied_at: "2025-09-15T10:00:00Z",
-    projects: {
-      title: "Community Clean-up Day",
-      ngo_organizations: { organization_name: "Green Earth Foundation" },
-    },
-  },
-  {
-    id: "app-002",
-    status: "pending",
-    applied_at: "2025-10-01T15:00:00Z",
-    projects: {
-      title: "Website Redesign",
-      ngo_organizations: { organization_name: "Local Food Bank" },
-    },
-  },
-  {
-    id: "app-003",
-    status: "rejected",
-    applied_at: "2025-08-20T12:00:00Z",
-    projects: {
-      title: "Winter Coat Drive",
-      ngo_organizations: { organization_name: "Hope Center" },
-    },
-  },
-];
-
-const DUMMY_AVAILABILITY = {
-  hours_per_week: 10,
-  available_from: "2025-11-01",
-  available_until: "2026-03-30",
-};
-
-const DUMMY_USER_POINTS = { total_points: 750 };
-
-// Matched projects based on DUMMY_SKILLS
-const DUMMY_MATCHED_PROJECTS = [
-  {
-    id: "m-001",
-    skill_name: "Graphic Design",
-    project_id: "proj-web",
-    projects: {
-      title: "Logo Creation for New Initiative",
-      ngo_organizations: { organization_name: "Arts & Culture Center" },
-    },
-  },
-  {
-    id: "m-002",
-    skill_name: "Social Media",
-    project_id: "proj-camp",
-    projects: {
-      title: "Holiday Fundraising Campaign",
-      ngo_organizations: { organization_name: "Green Earth Foundation" },
-    },
-  },
-];
-
-// --- Component ---
 
 const VolunteerDashboard = () => {
   const navigate = useNavigate();
-  const [newSkill, setNewSkill] = useState("");
-  const [skillLevel, setSkillLevel] = useState("");
-  const [skills, setSkills] = useState(DUMMY_SKILLS); // State for skills
 
-  // Replace hooks with static dummy data
-  const profile = DUMMY_PROFILE;
-  const applications = DUMMY_APPLICATIONS;
-  const availability = DUMMY_AVAILABILITY;
-  const userPoints = DUMMY_USER_POINTS;
-  const matchedProjects = DUMMY_MATCHED_PROJECTS;
+  const [profile, setProfile] = useState(null);
+  const [volunteerData, setVolunteerData] = useState(null);
+  const [applications, setApplications] = useState([]);
+  const [matchedProjects, setMatchedProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isMutating, setIsMutating] = useState(false);
 
-  const [isAdding, setIsAdding] = useState(false);
-  const [isRemoving, setIsRemoving] = useState(false);
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) throw userError || new Error("User not found.");
 
-  // Simulated add skill mutation
-  const handleAddSkill = () => {
-    if (!newSkill.trim() || !skillLevel.trim()) return;
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, full_name, volunteers(*)")
+        .eq("id", user.id)
+        .single();
+      if (profileError) throw profileError;
 
-    setIsAdding(true);
+      setProfile(profileData);
+      setVolunteerData(profileData.volunteers);
 
-    setTimeout(() => {
-      const newId = `s-${Date.now()}`;
-      const newSkillObject = {
-        id: newId,
-        skill_name: newSkill,
-        proficiency_level: skillLevel,
-      };
-      setSkills([...skills, newSkillObject]);
-      setNewSkill("");
-      setSkillLevel("");
-      setIsAdding(false);
-      console.log("Skill added:", newSkillObject);
-      // In a real app: toast({ title: "Skill added successfully!" });
-    }, 500);
+      const { data: applicationsData, error: applicationsError } =
+        await supabase
+          .from("applications")
+          .select(
+            `id, status, applied_at:created_at, projects:project_id(title, ngo_organizations:ngo_id(organization_name))`
+          )
+          .eq("profile_id", user.id);
+      if (applicationsError) throw applicationsError;
+      setApplications(applicationsData || []);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  const handleAddSkill = async (newSkill, skillLevel) => {
+    if (!newSkill.trim() || !skillLevel.trim() || !profile) return;
+    setIsMutating(true);
+
+    const newSkillObject = {
+      id: `s-${Date.now()}`,
+      skill_name: newSkill,
+      proficiency_level: skillLevel,
+    };
+    const currentSkills = volunteerData?.skills || [];
+    const updatedSkills = [...currentSkills, newSkillObject];
+
+    const { error } = await supabase
+      .from("volunteers")
+      .update({ skills: updatedSkills })
+      .eq("profile_id", profile.id);
+
+    if (error) {
+      console.error("Error adding skill:", error);
+    } else {
+      setVolunteerData({ ...volunteerData, skills: updatedSkills });
+    }
+    setIsMutating(false);
   };
 
-  // Simulated remove skill mutation
-  const handleRemoveSkill = (skillId) => {
-    setIsRemoving(true); // Simplified: apply to all actions globally for demo
-    setTimeout(() => {
-      setSkills(skills.filter((s) => s.id !== skillId));
-      setIsRemoving(false);
-      console.log(`Skill ${skillId} removed.`);
-      // In a real app: toast({ title: "Skill removed" });
-    }, 500);
+  const handleRemoveSkill = async (skillIdToRemove) => {
+    if (!profile) return;
+    setIsMutating(true);
+
+    const updatedSkills = volunteerData.skills.filter(
+      (s) => s.id !== skillIdToRemove
+    );
+    const { error } = await supabase
+      .from("volunteers")
+      .update({ skills: updatedSkills })
+      .eq("profile_id", profile.id);
+
+    if (error) {
+      console.error("Error removing skill:", error);
+    } else {
+      setVolunteerData({ ...volunteerData, skills: updatedSkills });
+    }
+    setIsMutating(false);
   };
+
+  const handleUpdateAvailability = async (availabilityForm) => {
+    if (!profile) return false;
+    const { data, error } = await supabase
+      .from("volunteers")
+      .update({ availability: availabilityForm })
+      .eq("profile_id", profile.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating availability:", error);
+      return false;
+    } else {
+      setVolunteerData(data);
+      return true;
+    }
+  };
+
+  if (loading) {
+    return <div>Loading your dashboard...</div>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -154,58 +144,13 @@ const VolunteerDashboard = () => {
           </p>
         </div>
 
-        {/* --- Key Metrics Cards --- */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Skills Listed
-              </CardTitle>
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{skills.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Professional skills
-              </p>
-            </CardContent>
-          </Card>
+        <DashboardSummary
+          skillCount={volunteerData?.skills?.length || 0}
+          applicationCount={applications.length}
+          impactPoints={volunteerData?.total_points || 0}
+        />
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Applications
-              </CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{applications.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Total applications
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Impact Points
-              </CardTitle>
-              <Award className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {userPoints?.total_points || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Keep volunteering!
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* --- Tabs for Details --- */}
-        <Tabs defaultValue="profile" className="space-y-6">
+        <Tabs defaultValue="profile" className="space-y-6 mt-8">
           <TabsList>
             <TabsTrigger value="profile">My Profile</TabsTrigger>
             <TabsTrigger value="matched">Matched Projects</TabsTrigger>
@@ -213,160 +158,45 @@ const VolunteerDashboard = () => {
             <TabsTrigger value="portfolio">Impact Portfolio</TabsTrigger>
           </TabsList>
 
-          {/* Profile Tab: Skills & Availability */}
           <TabsContent value="profile" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Skills & Expertise</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  {skills.map((skill) => (
-                    <Badge
-                      key={skill.id}
-                      variant="secondary"
-                      className="flex items-center gap-1"
-                    >
-                      {skill.skill_name} ({skill.proficiency_level})
-                      <X
-                        className="h-3 w-3 cursor-pointer"
-                        onClick={() => handleRemoveSkill(skill.id)}
-                        disabled={isRemoving}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Skill name"
-                    value={newSkill}
-                    onChange={(e) => setNewSkill(e.target.value)}
-                  />
-                  <Input
-                    placeholder="Level (e.g., Expert)"
-                    value={skillLevel}
-                    onChange={(e) => setSkillLevel(e.target.value)}
-                  />
-                  <Button
-                    onClick={handleAddSkill}
-                    disabled={isAdding || !newSkill || !skillLevel}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <SkillsManager
+              skills={volunteerData?.skills || []}
+              onAddSkill={handleAddSkill}
+              onRemoveSkill={handleRemoveSkill}
+              isMutating={isMutating}
+            />
+            <AvailabilityManager
+              availability={volunteerData?.availability}
+              onUpdate={handleUpdateAvailability}
+            />
+          </TabsContent>
 
+          <TabsContent value="matched">
+            {/* You can create a component for this too if it becomes complex */}
             <Card>
-              <CardHeader>
-                <CardTitle>Availability</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {availability ? (
-                  <div>
-                    <p>
-                      <span className="font-medium">Hours per week:</span>{" "}
-                      {availability.hours_per_week}
-                    </p>
-                    <p>
-                      <span className="font-medium">Available period:</span>{" "}
-                      {availability.available_from} to{" "}
-                      {availability.available_until}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">
-                    Set your availability to help NGOs find you.
-                  </p>
-                )}
-                <Button variant="outline">Update Availability</Button>
+              <CardContent className="pt-6 text-muted-foreground">
+                No projects matched your skills yet. Add more skills to improve
+                matching!
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Matched Projects Tab */}
-          <TabsContent value="matched" className="space-y-4">
-            {matchedProjects.length > 0 ? (
-              matchedProjects.map((projectSkill) => (
-                <Card key={projectSkill.id}>
-                  <CardContent className="pt-6">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold">
-                          {projectSkill.projects?.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {
-                            projectSkill.projects?.ngo_organizations
-                              ?.organization_name
-                          }
-                        </p>
-                        <Badge className="mt-2">
-                          {projectSkill.skill_name} Match
-                        </Badge>
-                      </div>
-                      <Button
-                        onClick={() =>
-                          navigate(`/project/${projectSkill.project_id}`)
-                        }
-                      >
-                        View Project
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <Card>
-                <CardContent className="pt-6 text-muted-foreground">
-                  No projects matched your skills yet. Add more skills to
-                  improve matching!
-                </CardContent>
-              </Card>
-            )}
+          <TabsContent value="applications">
+            <ApplicationsList applications={applications} />
           </TabsContent>
 
-          {/* Applications Tab */}
-          <TabsContent value="applications" className="space-y-4">
-            {applications.map((app) => (
-              <Card key={app.id}>
-                <CardContent className="pt-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold">{app.projects?.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {app.projects?.ngo_organizations?.organization_name}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Applied {new Date(app.applied_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Badge
-                      variant={
-                        app.status === "accepted"
-                          ? "default"
-                          : app.status === "rejected"
-                          ? "destructive"
-                          : "secondary"
-                      }
-                    >
-                      {app.status}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-
-          {/* Portfolio Tab */}
           <TabsContent value="portfolio">
             <Card>
               <CardContent className="pt-6">
                 <p className="text-muted-foreground">
                   Your impact portfolio and completed projects will appear here.
                 </p>
-                <Button variant="link" className="px-0 mt-2">
-                  View Your Profile
+                <Button
+                  variant="link"
+                  className="px-0 mt-2"
+                  onClick={() => navigate(`/profile/${profile?.id}`)}
+                >
+                  View Your Public Profile
                 </Button>
               </CardContent>
             </Card>
