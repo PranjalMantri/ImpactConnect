@@ -27,60 +27,60 @@ const NGODashboard = () => {
   const [donations, setDonations] = useState([]);
   const [volunteerApplications, setVolunteerApplications] = useState([]);
 
-  // useEffect is used here to run your logic after the component initially renders.
   useEffect(() => {
     const checkUserAndFetchData = async () => {
-      // 1. Get user data from the session, as you suggested.
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
       if (!session) {
-        setLoading(false);
-        // Maybe navigate to login if no session is found
         navigate("/login");
         return;
       }
       const user = session.user;
 
       try {
-        // 2. Check if there is any NGO with the user's ID.
         const { data: ngoData, error: ngoError } = await supabase
           .from("ngos")
           .select(`*`)
           .eq("id", user.id)
           .single();
 
-        // 3. If no NGO exists, we stop and will show the onboarding card.
         if (ngoError || !ngoData) {
           setNgo(null);
           setLoading(false);
           return;
         }
 
-        // 4. If an NGO exists, store it and fetch its related data.
         setNgo(ngoData);
 
-        const { data: projectsData } = await supabase
-          .from("projects")
-          .select("*")
-          .eq("ngo_id", ngoData.id);
-
-        setProjects(projectsData || []);
-        const projectIds = projectsData?.map((p) => p.id) || [];
-
-        if (projectIds.length > 0) {
-          const { data: donationsData } = await supabase
-            .from("donations")
+        if (ngoData.status === "verified") {
+          const { data: projectsData } = await supabase
+            .from("projects")
             .select("*")
-            .in("project_id", projectIds);
-          setDonations(donationsData || []);
+            .eq("ngo_id", ngoData.id);
 
-          const { data: appsData } = await supabase
-            .from("volunteer_applications")
-            .select("*, profile:profiles(*), project:projects(title)")
-            .in("project_id", projectIds);
-          setVolunteerApplications(appsData || []);
+          console.log("Fetched projects:", projectsData);
+          setProjects(projectsData || []);
+          const projectIds = projectsData?.map((p) => p.id) || [];
+
+          if (projectIds.length > 0) {
+            const { data: donationsData } = await supabase
+              .from("donations")
+              .select("*")
+              .in("project_id", projectIds);
+
+            console.log("Fetched donations:", donationsData);
+            setDonations(donationsData || []);
+
+            const { data: appsData } = await supabase
+              .from("volunteer_applications")
+              .select("*, profile:profiles(*), project:projects(title)")
+              .in("project_id", projectIds);
+
+            console.log("Fetched volunteer applications:", appsData);
+            setVolunteerApplications(appsData || []);
+          }
         }
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -91,9 +91,7 @@ const NGODashboard = () => {
     };
 
     checkUserAndFetchData();
-  }, [supabase, navigate]);
-
-  // --- The rest of the component remains the same ---
+  }, [navigate]);
 
   if (loading) {
     return (
@@ -111,17 +109,60 @@ const NGODashboard = () => {
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <main className="flex-1 flex items-center justify-center">
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-md text-center">
             <CardHeader>
-              <CardTitle>NGO Registration Required</CardTitle>
+              <CardTitle>Register Your NGO</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="mb-4">
-                You need to register your NGO before accessing this dashboard.
+                You need to register your NGO before you can access the
+                dashboard.
               </p>
               <Button onClick={() => navigate("/ngo-onboarding")}>
-                Register NGO
+                Start Registration
               </Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (ngo.status === "pending") {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <Card className="w-full max-w-md text-center">
+            <CardHeader>
+              <CardTitle>Application Pending</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>
+                Your NGO registration is under review. Please be patient, we
+                will notify you once the process is complete.
+              </p>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (ngo.status === "rejected") {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <Card className="w-full max-w-md text-center">
+            <CardHeader>
+              <CardTitle>Registration Rejected</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>
+                We're sorry, but your NGO registration could not be approved.
+                You cannot register or access the dashboard.
+              </p>
             </CardContent>
           </Card>
         </main>
@@ -138,7 +179,6 @@ const NGODashboard = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="mt-10 flex-1 container mx-auto px-4 py-8">
-        {/* ... The rest of the JSX is identical to the previous version ... */}
         <div className="mb-8">
           <div className="flex justify-between items-start mb-4">
             <div>
@@ -147,14 +187,14 @@ const NGODashboard = () => {
               </h1>
               <Badge
                 variant={
-                  ngo.verification_status === "verified"
+                  ngo.status === "verified"
                     ? "default"
-                    : ngo.verification_status === "rejected"
+                    : ngo.status === "rejected"
                     ? "destructive"
                     : "secondary"
                 }
               >
-                {ngo.verification_status}
+                {ngo.status}
               </Badge>
             </div>
             <Button onClick={() => navigate("/ngo/create-project")}>
@@ -214,21 +254,6 @@ const NGODashboard = () => {
               </p>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Impact Score
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">85</div>
-              <p className="text-xs text-muted-foreground">
-                Based on engagement
-              </p>
-            </CardContent>
-          </Card>
         </div>
 
         <Tabs defaultValue="projects" className="space-y-6">
@@ -239,6 +264,7 @@ const NGODashboard = () => {
             <TabsTrigger value="reports">Impact Reports</TabsTrigger>
           </TabsList>
 
+          {/* The rest of your TabsContent JSX remains the same... */}
           <TabsContent value="projects" className="space-y-4">
             {projects?.length > 0 ? (
               projects.map((project) => (
