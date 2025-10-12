@@ -141,40 +141,6 @@ const DonorDashboard = () => {
               </p>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Impact Points
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {userPoints?.total_points || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Keep making an impact!
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Badges Earned
-              </CardTitle>
-              <Award className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {userBadges?.length || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Achievements unlocked
-              </p>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Tabs for Details */}
@@ -182,8 +148,6 @@ const DonorDashboard = () => {
           <TabsList>
             <TabsTrigger value="history">Donation History</TabsTrigger>
             <TabsTrigger value="recurring">Recurring Donations</TabsTrigger>
-            <TabsTrigger value="impact">Impact Reports</TabsTrigger>
-            <TabsTrigger value="badges">Badges</TabsTrigger>
           </TabsList>
 
           {/* Donation History Tab */}
@@ -284,55 +248,6 @@ const DonorDashboard = () => {
                 <CardContent className="pt-6">
                   <p className="text-muted-foreground">
                     You currently have no active recurring donations.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* Impact Reports Tab */}
-          <TabsContent value="impact">
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-muted-foreground">
-                  Impact reports from NGOs you've supported will appear here.
-                  Stay tuned to see your contributions at work!
-                </p>
-                <Button variant="link" className="px-0 mt-2">
-                  Find new projects to support
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Badges Tab */}
-          <TabsContent value="badges" className="space-y-4">
-            {userBadges?.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {userBadges.map((userBadge) => (
-                  <Card key={userBadge.id} className="text-center">
-                    <CardContent className="pt-6">
-                      <div className="text-4xl mb-2">🏆</div>
-                      <h3 className="font-semibold">
-                        {userBadge.badges?.name}
-                      </h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {userBadge.badges?.description}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Earned{" "}
-                        {new Date(userBadge.earned_at).toLocaleDateString()}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="pt-6">
-                  <p className="text-muted-foreground">
-                    You haven't earned any badges yet. Start donating to unlock
-                    achievements!
                   </p>
                 </CardContent>
               </Card>
