@@ -1,4 +1,3 @@
-// src/pages/NGODashboard.js
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "../supabase/client";
@@ -59,9 +58,10 @@ const NGODashboard = () => {
             setDonations(donationsData || []);
 
             const { data: appsData } = await supabase
-              .from("volunteer_applications")
+              .from("applications")
               .select("*, profile:profiles(*), project:projects(title)")
               .in("project_id", projectIds);
+
             setVolunteerApplications(appsData || []);
           }
         }
@@ -75,6 +75,44 @@ const NGODashboard = () => {
 
     checkUserAndFetchData();
   }, [navigate]);
+
+  const handleAccept = async (applicationId) => {
+    try {
+      const { error } = await supabase
+        .from("applications")
+        .update({ status: "accepted" })
+        .eq("id", applicationId);
+
+      if (error) throw error;
+
+      setVolunteerApplications((currentApps) =>
+        currentApps.map((app) =>
+          app.id === applicationId ? { ...app, status: "accepted" } : app
+        )
+      );
+    } catch (error) {
+      console.error("Error accepting application:", error.message);
+    }
+  };
+
+  const handleReject = async (applicationId) => {
+    try {
+      const { error } = await supabase
+        .from("applications")
+        .update({ status: "rejected" })
+        .eq("id", applicationId);
+
+      if (error) throw error;
+
+      setVolunteerApplications((currentApps) =>
+        currentApps.map((app) =>
+          app.id === applicationId ? { ...app, status: "rejected" } : app
+        )
+      );
+    } catch (error) {
+      console.error("Error rejecting application:", error.message);
+    }
+  };
 
   if (loading) {
     return (
@@ -113,6 +151,8 @@ const NGODashboard = () => {
           projects={projects}
           donations={donations}
           volunteerApplications={volunteerApplications}
+          onAccept={handleAccept}
+          onReject={handleReject}
         />
       </main>
     </div>

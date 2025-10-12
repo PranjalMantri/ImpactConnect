@@ -2,7 +2,7 @@ import { Card, CardContent } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 
-const VolunteerApplicationList = ({ applications }) => {
+const VolunteerApplicationList = ({ applications, onAccept, onReject }) => {
   if (!applications || applications.length === 0) {
     return (
       <Card>
@@ -26,7 +26,7 @@ const VolunteerApplicationList = ({ applications }) => {
               <span className="font-medium">Project:</span> {app.project?.title}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              Applied {new Date(app.applied_at).toLocaleDateString()}
+              Applied {new Date(app.created_at).toLocaleDateString()}
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -43,10 +43,18 @@ const VolunteerApplicationList = ({ applications }) => {
             </Badge>
             {app.status === "pending" && (
               <div className="flex gap-2">
-                <Button size="sm" variant="success">
+                <Button
+                  size="sm"
+                  variant="success"
+                  onClick={() => onAccept(app.id)}
+                >
                   Accept
                 </Button>
-                <Button size="sm" variant="outline">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onReject(app.id)}
+                >
                   Reject
                 </Button>
               </div>
