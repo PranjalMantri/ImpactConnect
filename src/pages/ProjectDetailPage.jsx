@@ -37,8 +37,6 @@ const ProjectDetail = () => {
         const currentUser = session?.user;
         setUser(currentUser);
 
-        console.log("Current User:", currentUser);
-
         let applicationCheckPromise = Promise.resolve({ data: [] });
         if (currentUser) {
           setIsVolunteer(currentUser.user_metadata?.user_type === "volunteer");
@@ -49,27 +47,15 @@ const ProjectDetail = () => {
             .limit(1);
         }
 
-        console.log("Application Check Promise:", applicationCheckPromise);
-
         const [projectResponse, applicationResponse] = await Promise.all([
           supabase.from("projects").select("*").eq("id", id).single(),
           applicationCheckPromise,
         ]);
 
-        if (projectResponse.error) {
-          console.error("Error fetching project:", projectResponse.error);
-          throw projectResponse.error;
-        }
-
+        if (projectResponse.error) throw projectResponse.error;
         setProject(projectResponse.data);
 
-        if (applicationResponse.error) {
-          console.error(
-            "Error checking application:",
-            applicationResponse.error
-          );
-          throw applicationResponse.error;
-        }
+        if (applicationResponse.error) throw applicationResponse.error;
         if (applicationResponse.data.length > 0) {
           setHasApplied(true);
         }
@@ -93,12 +79,7 @@ const ProjectDetail = () => {
     try {
       const { error: insertError } = await supabase
         .from("applications")
-        .insert([
-          {
-            profile_id: user.id,
-            project_id: id,
-          },
-        ]);
+        .insert([{ profile_id: user.id, project_id: id }]);
 
       if (insertError) throw insertError;
 
@@ -138,8 +119,13 @@ const ProjectDetail = () => {
 
   const fundingReceived = project.funding_received || 0;
   const fundingGoal = project.funding_goal || 1;
-  const fundingProgress = (fundingReceived / fundingGoal) * 100;
-  const fundsRemaining = fundingGoal - fundingReceived;
+
+  const fundingProgress =
+    fundingGoal > 0 ? Math.min(100, (fundingReceived / fundingGoal) * 100) : 0;
+  const fundsRemaining = Math.max(0, fundingGoal - fundingReceived);
+
+  // New variable to check if the funding goal is met
+  const isGoalMet = fundingReceived >= fundingGoal;
 
   return (
     <div className="min-h-screen bg-background">
@@ -214,17 +200,28 @@ const ProjectDetail = () => {
                     </span>
                   </div>
                 </div>
-                <Button className="w-full mb-3" asChild>
-                  <Link to={`/donate/${project.id}`}>Donate Now</Link>
-                </Button>
+                {/* Updated Donate button */}
+                {isGoalMet ? (
+                  <Button className="w-full mb-3" disabled>
+                    <Link to={`/donate/${project.id}`}>Goal Achieved</Link>
+                  </Button>
+                ) : (
+                  <Button className="w-full mb-3" asChild>
+                    <Link to={`/donate/${project.id}`}>Donate Now</Link>
+                  </Button>
+                )}
+
+                {/* Updated Volunteer button */}
                 {isVolunteer ? (
                   <Button
                     variant="secondary"
                     className="w-full"
                     onClick={handleVolunteerApply}
-                    disabled={hasApplied || isApplying}
+                    disabled={isGoalMet || hasApplied || isApplying}
                   >
-                    {isApplying
+                    {isGoalMet
+                      ? "Goal Achieved"
+                      : isApplying
                       ? "Submitting..."
                       : hasApplied
                       ? "Applied"
