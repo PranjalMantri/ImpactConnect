@@ -16,6 +16,7 @@ import VolunteerDashboard from "./pages/VolunteerDashboard.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import { useState, useEffect } from "react";
 import supabase from "./supabase/client.js";
+import AdminDashboard from "./pages/AdminDashboard.jsx";
 
 function App() {
   const [session, setSession] = useState(null);
@@ -50,6 +51,7 @@ function App() {
         <Route path="/ngo-dashboard" element={<NGODashboard />} />
         <Route path="/ngo/create-project" element={<CreateProject />} />
         <Route path="/messages" element={<Messages />} />
+        <Route path="/admin" element={<AdminDashboard />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

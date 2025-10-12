@@ -8,16 +8,39 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
+    const fetchProfile = async (userId) => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("isAdmin")
+        .eq("id", userId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching profile:", error.message);
+      } else {
+        setProfile(data);
+      }
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session) {
+        fetchProfile(session.user.id);
+      }
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session) {
+        fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -27,6 +50,7 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setProfile(null);
     navigate("/");
   };
 
@@ -95,9 +119,16 @@ const Navbar = () => {
 
         <div className="flex items-center gap-3">
           {session ? (
-            <Button variant="ghost" onClick={handleLogout}>
-              Log Out
-            </Button>
+            <>
+              <Button variant="ghost" onClick={handleLogout}>
+                Log Out
+              </Button>
+              {profile?.isAdmin && (
+                <Button asChild>
+                  <Link to="/admin">Admin Panel</Link>
+                </Button>
+              )}
+            </>
           ) : (
             <>
               <Button variant="ghost" asChild>
