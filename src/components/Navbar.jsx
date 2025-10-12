@@ -54,6 +54,26 @@ const Navbar = () => {
     navigate("/");
   };
 
+  // New handler for in-page navigation
+  const handleNavAndScroll = (hash) => {
+    if (location.pathname !== "/") {
+      navigate("/");
+      // Use timeout to ensure the homepage has rendered before scrolling
+      setTimeout(() => {
+        const element = document.querySelector(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+    } else {
+      // If already on the homepage, just scroll
+      const element = document.querySelector(hash);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -90,30 +110,28 @@ const Navbar = () => {
           </div>
         ) : (
           <div className="hidden md:flex items-center gap-6">
-            <Link
-              to="/about"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                isActive("/about") ? "text-primary" : "text-muted-foreground"
-              }`}
+            {/* Updated "About" link */}
+            <a
+              href="#about"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavAndScroll("#about");
+              }}
+              className={`text-sm font-medium transition-colors hover:text-primary text-muted-foreground`}
             >
               About
-            </Link>
-            <Link
-              to="/projects"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                isActive("/projects") ? "text-primary" : "text-muted-foreground"
-              }`}
+            </a>
+            {/* Updated "Get Started" link */}
+            <a
+              href="#get-started"
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavAndScroll("#get-started");
+              }}
+              className={`text-sm font-medium transition-colors hover:text-primary text-muted-foreground`}
             >
-              Projects
-            </Link>
-            <Link
-              to="/ngos"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                isActive("/ngos") ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              NGOs
-            </Link>
+              Get Started
+            </a>
           </div>
         )}
 

@@ -1,16 +1,14 @@
 import { Link } from "react-router-dom";
 import { Button } from "../components/ui/Button";
-import { Search, Users, Globe } from "lucide-react";
+import { Search, Users, Globe, Heart } from "lucide-react";
 import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
 import heroBackground from "../assets/hero-background.png";
 
-const Index = () => {
+const LandingPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      {/* Hero Section */}
       <section
         className="relative h-[600px] flex items-center justify-center text-center overflow-hidden mt-16"
         style={{
@@ -35,7 +33,7 @@ const Index = () => {
               asChild
               className="bg-primary hover:bg-primary-hover text-primary-foreground"
             >
-              <Link to="/projects">Explore Projects</Link>
+              <Link to="/register">Explore Projects</Link>
             </Button>
             <Button size="lg" variant="secondary" asChild>
               <Link to="/register">Sign Up</Link>
@@ -44,8 +42,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="py-20 bg-muted">
+      <section id="about" className="py-20 bg-muted">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">How ImpactConnect Works</h2>
@@ -93,9 +90,25 @@ const Index = () => {
         </div>
       </section>
 
-      {/* <Footer /> */}
+      {/* Call to Action Section */}
+      <section id="get-started" className="bg-primary text-primary-foreground">
+        <div className="container mx-auto px-4 py-20 text-center">
+          <Heart className="w-12 h-12 mx-auto mb-4" />
+          <h2 className="text-4xl font-bold mb-4">Ready to Make an Impact?</h2>
+          <p className="text-lg text-primary-foreground/90 max-w-2xl mx-auto mb-8">
+            Join thousands of volunteers and donors who are changing the world
+            one project at a time. Your journey to creating a positive impact
+            starts here.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" variant="secondary" asChild>
+              <Link to="/register">Get Started Now</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
 
-export default Index;
+export default LandingPage;
