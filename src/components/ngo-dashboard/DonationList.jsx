@@ -18,7 +18,7 @@ const DonationList = ({ donations }) => {
         <div className="flex justify-between items-start">
           <div>
             <p className="font-semibold text-xl">
-              ${Number(donation.amount).toFixed(2)}
+              ₹{Number(donation.amount).toFixed(2)}
             </p>
             <p className="text-sm text-muted-foreground">
               {new Date(donation.created_at).toLocaleDateString()}
