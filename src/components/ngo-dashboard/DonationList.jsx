@@ -21,7 +21,7 @@ const DonationList = ({ donations }) => {
               ${Number(donation.amount).toFixed(2)}
             </p>
             <p className="text-sm text-muted-foreground">
-              {new Date(donation.donated_at).toLocaleDateString()}
+              {new Date(donation.created_at).toLocaleDateString()}
             </p>
             {donation.message && (
               <p className="text-sm mt-2 italic p-2 bg-muted rounded">
