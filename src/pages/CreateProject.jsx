@@ -1,115 +1,188 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import supabase from "../supabase/client";
 import Navbar from "../components/Navbar";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/Card";
+import { Card, CardContent } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Textarea } from "../components/ui/TextArea";
 import { Label } from "../components/ui/Label";
-
-// --- Dummy Data and Functions for Frontend Development ---
-
-// Simulate a verified NGO session
-const DUMMY_NGO = {
-  id: "ngo-456",
-  organization_name: "Hope for the Future Foundation",
-  verification_status: "verified", // Ensure this is 'verified' to show the form
-};
-const DUMMY_NGO_UNVERIFIED = {
-  id: "ngo-789",
-  organization_name: "Unverified Charity",
-  verification_status: "pending",
-};
-
-// Use the verified NGO for the main component display
-const ngo = DUMMY_NGO;
-
-// --- Component ---
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/Select";
+import { X } from "lucide-react";
 
 const CreateProject = () => {
   const navigate = useNavigate();
+
+  const [ngo, setNgo] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    category: "",
-    location: "",
-    fundingGoal: "",
-    volunteersNeeded: "",
-    startDate: "",
-    endDate: "",
+    cause: "",
+    skills_required: [],
+    start_date: "",
+    end_date: "",
+    funding_goal: "",
+    volunteers_needed: "",
   });
-  const [isSubmitting, setIsSubmitting] = useState(false); // Dummy loading state
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [currentSkill, setCurrentSkill] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchNgoData = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        // Assuming your table is named 'ngos' and the 'id' column matches the user's id
+        const { data: ngoProfile, error } = await supabase
+          .from("ngos")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching NGO profile:", error);
+          setError("Could not load your organization's data.");
+        } else {
+          setNgo(ngoProfile);
+        }
+      } else {
+        navigate("/login");
+      }
+      setIsLoading(false);
+    };
+
+    fetchNgoData();
+  }, [navigate]);
 
   const handleChange = (e) => {
     const { id, value } = e.target;
     setFormData({ ...formData, [id]: value });
   };
 
-  const handleSubmit = () => {
-    // Basic form validation check (required fields from your original code)
-    if (
-      !formData.title ||
-      !formData.description ||
-      !formData.category ||
-      !formData.location
-    ) {
-      console.error("Please fill out all required fields.");
-      // In a real app, you would show a toast/error here
+  const handleCauseChange = (value) => {
+    setFormData({ ...formData, cause: value });
+  };
+
+  const handleImageChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleAddSkill = () => {
+    if (currentSkill && !formData.skills_required.includes(currentSkill)) {
+      setFormData({
+        ...formData,
+        skills_required: [...formData.skills_required, currentSkill],
+      });
+      setCurrentSkill("");
+    }
+  };
+
+  const handleRemoveSkill = (skillToRemove) => {
+    setFormData({
+      ...formData,
+      skills_required: formData.skills_required.filter(
+        (skill) => skill !== skillToRemove
+      ),
+    });
+  };
+
+  const handleSkillKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddSkill();
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.title || !formData.description || !formData.cause) {
+      setError("Please fill out all required fields.");
+      return;
+    }
+    if (!ngo) {
+      setError("Organization data not found. Cannot create project.");
       return;
     }
 
     setIsSubmitting(true);
+    setError("");
 
-    // Simulate API call delay
-    setTimeout(() => {
-      // Log the data instead of sending to Supabase
-      console.log("--- New Project Data ---");
-      console.log("NGO ID:", ngo.id);
-      console.log("Title:", formData.title);
-      console.log("Category:", formData.category);
-      console.log("Funding Goal:", parseFloat(formData.fundingGoal) || 0);
-      console.log("------------------------");
+    try {
+      let imageUrl = null;
 
-      setIsSubmitting(false);
+      if (imageFile) {
+        const fileExt = imageFile.name.split(".").pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${ngo.id}/${fileName}`;
 
-      // Simulate successful toast and navigation
-      console.log("Project created successfully! (Simulated)");
+        const { error: uploadError } = await supabase.storage
+          .from("project-images")
+          .upload(filePath, imageFile);
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("project-images")
+          .getPublicUrl(filePath);
+        imageUrl = urlData.publicUrl;
+      }
+
+      const projectData = {
+        ...formData,
+        ngo_id: ngo.id,
+        image_url: imageUrl,
+        funding_goal: formData.funding_goal
+          ? parseFloat(formData.funding_goal)
+          : null,
+        volunteers_needed: formData.volunteers_needed
+          ? parseInt(formData.volunteers_needed, 10)
+          : null,
+      };
+
+      const { error: insertError } = await supabase
+        .from("projects")
+        .insert([projectData]);
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      console.log("Project created successfully!", projectData);
       navigate("/ngo-dashboard");
-    }, 1500);
+    } catch (error) {
+      console.error("Error creating project:", error.message);
+      setError(`Failed to create project: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  // Check 2: Verification Status (Simulate failure with DUMMY_NGO_UNVERIFIED if needed)
-  if (ngo.verification_status !== "verified") {
+  const isFormValid = formData.title && formData.description && formData.cause;
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Verification Pending</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4">
-                Your NGO must be verified before creating projects.
-              </p>
-              <Button onClick={() => navigate("/")}>Return Home</Button>
-            </CardContent>
-          </Card>
-        </main>
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Loading...</p>
       </div>
     );
   }
-
-  const isFormValid =
-    formData.title &&
-    formData.description &&
-    formData.category &&
-    formData.location;
 
   return (
     <div className="mt-10 min-h-screen flex flex-col">
@@ -117,101 +190,163 @@ const CreateProject = () => {
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <h1 className="text-4xl font-bold mb-8">Create New Project</h1>
-
           <Card>
             <CardContent className="pt-6 space-y-6">
-              {/* Project Title */}
               <div>
                 <Label htmlFor="title">Project Title *</Label>
                 <Input
                   id="title"
                   value={formData.title}
                   onChange={handleChange}
-                  placeholder="Enter project title"
+                  placeholder="e.g., Winter Clothing Drive for the Homeless"
                 />
               </div>
-
-              {/* Description */}
               <div>
-                <Label htmlFor="description">Description *</Label>
+                <Label htmlFor="description">Project Description *</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={handleChange}
-                  placeholder="Describe your project"
+                  placeholder="Provide a detailed description of your project's goals, activities, and impact."
                   rows={6}
                 />
               </div>
 
-              {/* Category & Location */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="category">Category *</Label>
-                  <Input
-                    id="category"
-                    value={formData.category}
-                    onChange={handleChange}
-                    placeholder="e.g., Education, Health"
-                  />
+                  <Label htmlFor="cause">Project Cause *</Label>
+                  <Select
+                    onValueChange={handleCauseChange}
+                    value={formData.cause}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a cause" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Education">Education</SelectItem>
+                      <SelectItem value="Health">Health</SelectItem>
+                      <SelectItem value="Environment">Environment</SelectItem>
+                      <SelectItem value="Animal Welfare">
+                        Animal Welfare
+                      </SelectItem>
+                      <SelectItem value="Human Rights">Human Rights</SelectItem>
+                      <SelectItem value="Community Development">
+                        Community Development
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <Label htmlFor="location">Location *</Label>
+                  <Label htmlFor="image">Project Image</Label>
                   <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    placeholder="Project location"
+                    id="image"
+                    type="file"
+                    onChange={handleImageChange}
+                    accept="image/png, image/jpeg, image/webp"
+                    className="file:text-primary-foreground"
                   />
                 </div>
               </div>
 
-              {/* Funding Goal & Volunteers Needed */}
+              {imagePreview && (
+                <div className="mt-4">
+                  <Label>Image Preview</Label>
+                  <div className="aspect-video w-full rounded-md overflow-hidden border relative mt-2">
+                    <img
+                      src={imagePreview}
+                      alt="Project preview"
+                      className="object-cover w-full h-full"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-7 w-7"
+                      onClick={() => {
+                        setImageFile(null);
+                        setImagePreview("");
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="skills">Skills Required</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="skills"
+                    value={currentSkill}
+                    onChange={(e) => setCurrentSkill(e.target.value)}
+                    onKeyDown={handleSkillKeyDown}
+                    placeholder="e.g., Marketing, Event Planning"
+                  />
+                  <Button type="button" onClick={handleAddSkill}>
+                    Add
+                  </Button>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {formData.skills_required.map((skill, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-1 bg-secondary text-secondary-foreground rounded-full px-3 py-1 text-sm"
+                    >
+                      {skill}
+                      <button onClick={() => handleRemoveSkill(skill)}>
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="fundingGoal">Funding Goal ($)</Label>
+                  <Label htmlFor="funding_goal">Funding Goal (₹)</Label>
                   <Input
-                    id="fundingGoal"
+                    id="funding_goal"
                     type="number"
-                    value={formData.fundingGoal}
+                    value={formData.funding_goal}
                     onChange={handleChange}
                     placeholder="0"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="volunteersNeeded">Volunteers Needed</Label>
+                  <Label htmlFor="volunteers_needed">Volunteers Needed</Label>
                   <Input
-                    id="volunteersNeeded"
+                    id="volunteers_needed"
                     type="number"
-                    value={formData.volunteersNeeded}
+                    value={formData.volunteers_needed}
                     onChange={handleChange}
                     placeholder="0"
                   />
                 </div>
               </div>
 
-              {/* Start Date & End Date */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="startDate">Start Date</Label>
+                  <Label htmlFor="start_date">Start Date</Label>
                   <Input
-                    id="startDate"
+                    id="start_date"
                     type="date"
-                    value={formData.startDate}
+                    value={formData.start_date}
                     onChange={handleChange}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="endDate">End Date</Label>
+                  <Label htmlFor="end_date">End Date</Label>
                   <Input
-                    id="endDate"
+                    id="end_date"
                     type="date"
-                    value={formData.endDate}
+                    value={formData.end_date}
                     onChange={handleChange}
                   />
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {error && <p className="text-sm text-destructive">{error}</p>}
+
               <div className="flex gap-4 pt-4">
                 <Button
                   variant="outline"
