@@ -23,8 +23,6 @@ const Projects = () => {
 
       const { data, error } = await query;
 
-      console.log("Fetched projects:", data);
-
       if (error) {
         console.error("Error fetching projects:", error);
       } else {
@@ -35,6 +33,10 @@ const Projects = () => {
 
     fetchProjects();
   }, [searchQuery]);
+
+  const filteredProjects = projects.filter(
+    (project) => project.status === "open"
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -64,7 +66,7 @@ const Projects = () => {
             <p>Loading projects...</p>
           ) : (
             <div className="grid md:grid-cols-3 gap-6">
-              {projects.map((project) => (
+              {filteredProjects.map((project) => (
                 <div
                   key={project.id}
                   className="bg-card rounded-lg overflow-hidden border border-border hover:shadow-lg transition-shadow"
