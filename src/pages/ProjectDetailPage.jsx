@@ -17,7 +17,10 @@ const formatCurrency = (amount) => {
 const ProjectDetail = () => {
   const { id } = useParams();
   const [project, setProject] = useState(null);
+  const [user, setUser] = useState(null);
   const [isVolunteer, setIsVolunteer] = useState(false);
+  const [hasApplied, setHasApplied] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -28,23 +31,47 @@ const ProjectDetail = () => {
       setError(null);
 
       try {
-        // Fetch session and project data in parallel for better performance
-        const [projectResponse, sessionResponse] = await Promise.all([
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const currentUser = session?.user;
+        setUser(currentUser);
+
+        console.log("Current User:", currentUser);
+
+        let applicationCheckPromise = Promise.resolve({ data: [] });
+        if (currentUser) {
+          setIsVolunteer(currentUser.user_metadata?.user_type === "volunteer");
+          applicationCheckPromise = supabase
+            .from("applications")
+            .select("id")
+            .match({ profile_id: currentUser.id, project_id: id })
+            .limit(1);
+        }
+
+        console.log("Application Check Promise:", applicationCheckPromise);
+
+        const [projectResponse, applicationResponse] = await Promise.all([
           supabase.from("projects").select("*").eq("id", id).single(),
-          supabase.auth.getSession(),
+          applicationCheckPromise,
         ]);
 
-        // Handle project data
         if (projectResponse.error) {
+          console.error("Error fetching project:", projectResponse.error);
           throw projectResponse.error;
         }
+
         setProject(projectResponse.data);
 
-        // Handle session data
-        if (sessionResponse.data.session) {
-          const userType =
-            sessionResponse.data.session.user.user_metadata.user_type;
-          setIsVolunteer(userType === "volunteer");
+        if (applicationResponse.error) {
+          console.error(
+            "Error checking application:",
+            applicationResponse.error
+          );
+          throw applicationResponse.error;
+        }
+        if (applicationResponse.data.length > 0) {
+          setHasApplied(true);
         }
       } catch (err) {
         console.error("Error fetching project data:", err);
@@ -56,6 +83,34 @@ const ProjectDetail = () => {
 
     fetchData();
   }, [id]);
+
+  const handleVolunteerApply = async () => {
+    if (!user) {
+      alert("You must be logged in to volunteer.");
+      return;
+    }
+    setIsApplying(true);
+    try {
+      const { error: insertError } = await supabase
+        .from("applications")
+        .insert([
+          {
+            profile_id: user.id,
+            project_id: id,
+          },
+        ]);
+
+      if (insertError) throw insertError;
+
+      setHasApplied(true);
+      alert("Application submitted successfully!");
+    } catch (err) {
+      console.error("Error submitting application:", err);
+      alert("Failed to submit application. You may have already applied.");
+    } finally {
+      setIsApplying(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -96,7 +151,6 @@ const ProjectDetail = () => {
           <p className="text-lg text-muted-foreground mb-8">
             {project.description}
           </p>
-
           <div className="grid md:grid-cols-3 gap-8 mb-12">
             <div className="md:col-span-2">
               <img
@@ -164,12 +218,21 @@ const ProjectDetail = () => {
                   <Link to={`/donate/${project.id}`}>Donate Now</Link>
                 </Button>
                 {isVolunteer ? (
-                  <Button variant="secondary" className="w-full" asChild>
-                    <Link to={`/volunteer/${project.id}`}>Volunteer</Link>
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    onClick={handleVolunteerApply}
+                    disabled={hasApplied || isApplying}
+                  >
+                    {isApplying
+                      ? "Submitting..."
+                      : hasApplied
+                      ? "Applied"
+                      : "Volunteer"}
                   </Button>
                 ) : (
                   <Button variant="secondary" className="w-full" disabled>
-                    Volunteer
+                    Login as Volunteer to Apply
                   </Button>
                 )}
               </div>
