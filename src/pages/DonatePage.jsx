@@ -161,6 +161,18 @@ const Donate = () => {
                   </div>
                   <div
                     className={`flex items-center space-x-2 p-3 rounded-lg border ${
+                      donationFrequency === "weekly"
+                        ? "border-primary bg-secondary"
+                        : "border-border"
+                    }`}
+                  >
+                    <RadioGroupItem value="weekly" id="weekly" />
+                    <Label htmlFor="weekly" className="cursor-pointer flex-1">
+                      Weekly
+                    </Label>
+                  </div>
+                  <div
+                    className={`flex items-center space-x-2 p-3 rounded-lg border ${
                       donationFrequency === "monthly"
                         ? "border-primary bg-secondary"
                         : "border-border"
@@ -169,6 +181,18 @@ const Donate = () => {
                     <RadioGroupItem value="monthly" id="monthly" />
                     <Label htmlFor="monthly" className="cursor-pointer flex-1">
                       Monthly
+                    </Label>
+                  </div>
+                  <div
+                    className={`flex items-center space-x-2 p-3 rounded-lg border ${
+                      donationFrequency === "annually"
+                        ? "border-primary bg-secondary"
+                        : "border-border"
+                    }`}
+                  >
+                    <RadioGroupItem value="annually" id="annually" />
+                    <Label htmlFor="annually" className="cursor-pointer flex-1">
+                      Annually
                     </Label>
                   </div>
                 </RadioGroup>
