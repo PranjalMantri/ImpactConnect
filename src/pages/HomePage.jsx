@@ -152,6 +152,7 @@ const HomePage = () => {
               post={post}
               author={post.author}
               onToggleLike={handleToggleLike}
+              currentUser={profile}
             />
           ))}
         </div>
