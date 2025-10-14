@@ -165,7 +165,7 @@ const CreateProject = () => {
       }
 
       console.log("Project created successfully!", projectData);
-      navigate("/ngo-dashboard");
+      navigate("/dashboard");
     } catch (error) {
       console.error("Error creating project:", error.message);
       setError(`Failed to create project: ${error.message}`);
